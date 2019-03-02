@@ -4,6 +4,9 @@
   "description": "The tol generates SVG React component for a set of svg icons",
   "main": "index.js",
   "author": "Elvin Dzhavadov",
+  "bin": {
+    "build-react-icons": "./bin/build-react-icons.js"
+  },
   "scripts": {
     "start": "babel-node src/index.js",
     "build": "babel ./src --out-dir dist --copy-files"
