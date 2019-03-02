@@ -11,6 +11,11 @@
     "start": "babel-node src/index.js",
     "build": "babel ./src --out-dir dist --copy-files"
   },
+  "files": [
+    "bin",
+    "dist",
+    "babel.library.js"
+  ],
   "dependencies": {
     "chalk": "^2.4.2",
     "eslint-config-elv1n-react": "^0.0.10",
