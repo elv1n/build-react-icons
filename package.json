@@ -13,8 +13,7 @@
   },
   "files": [
     "bin",
-    "dist",
-    "babel.library.js"
+    "dist"
   ],
   "dependencies": {
     "chalk": "^2.4.2",
