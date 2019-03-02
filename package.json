@@ -1,6 +1,6 @@
 {
   "name": "build-react-icons",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "The tol generates SVG React component for a set of svg icons",
   "main": "index.js",
   "author": "Elvin Dzhavadov",
