@@ -1,4 +1,4 @@
-import { isNumber, upperFirst, camelCase, replace, flow } from 'lodash';
+import { upperFirst, camelCase, replace, flow } from 'lodash';
 
 /*
  * Return path to write file to inside outputDir.
@@ -17,16 +17,12 @@ import { isNumber, upperFirst, camelCase, replace, flow } from 'lodash';
  */
 function defaultDestRewriter(svgPathObj, innerPath, { fileSuffix }) {
   return flow([
-    i => replace(i, '.svg'),
+    i => replace(i, '.svg', ''),
     camelCase,
     upperFirst,
     i => (!Number.isNaN(Number(i.charAt(0))) ? `_${i}` : i),
     i => (fileSuffix ? replace(fileSuffix, '.svg') : `${i}.js`)
   ])(svgPathObj.base);
-  // fileName = fileName.replace(/(^.)|(_)(.)/g, (match, p1, p2, p3) =>
-  //  (p1 || p3).toUpperCase()
-  // );
-  // return path.join(innerPath, fileName);
 }
 
 export default defaultDestRewriter;

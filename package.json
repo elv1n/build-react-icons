@@ -8,8 +8,7 @@
     "build-react-icons": "./bin/build-react-icons.js"
   },
   "scripts": {
-    "start": "babel-node src/index.js",
-    "build": "babel ./src --out-dir dist --copy-files"
+    "build": "babel ./src --out-dir dist --copy-files -w"
   },
   "files": [
     "bin",
@@ -17,7 +16,6 @@
   ],
   "dependencies": {
     "chalk": "^2.4.2",
-    "eslint-config-elv1n-react": "^0.0.10",
     "fs-extra": "^7.0.0",
     "glob": "^7.1.3",
     "lodash": "^4.17.11",
@@ -34,7 +32,8 @@
     "@babel/cli": "^7.2.3",
     "@babel/core": "^7.3.4",
     "@babel/node": "^7.2.2",
-    "@babel/preset-env": "^7.3.4"
+    "@babel/preset-env": "^7.3.4",
+    "eslint-config-elv1n-react": "^0.0.10"
   },
   "repository": "elv1n/build-react-icons",
   "babel": {
@@ -47,6 +46,11 @@
           }
         }
       ]
+    ]
+  },
+  "eslintConfig": {
+    "extends": [
+      "elv1n-react"
     ]
   },
   "license": "MIT"

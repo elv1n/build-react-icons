@@ -12,6 +12,7 @@ import SVGO from 'svgo';
 import pMap from 'p-map';
 
 import uniqNames from './utils/uniqNames';
+import defaultFilter from './utils/renameFilters/default';
 
 const globAsync = util.promisify(glob);
 const RENAME_FILTER_DEFAULT = './utils/renameFilters/default';
@@ -73,9 +74,9 @@ function getComponentName(destPath) {
   const splitregex = new RegExp(`[${path.sep}-]+`);
 
   const parts = destPath
-  .replace('.js', '')
-  .split(splitregex)
-  .map(part => part.charAt(0).toUpperCase() + part.substring(1));
+    .replace('.js', '')
+    .split(splitregex)
+    .map(part => part.charAt(0).toUpperCase() + part.substring(1));
 
   return parts.join('');
 }
@@ -83,11 +84,11 @@ function getComponentName(destPath) {
 async function generateIndex(options) {
   const files = await globAsync(path.join(options.outputDir, '*.js'));
   const index = files
-  .map(file => {
-    const typename = path.basename(file).replace('.js', '');
-    return `export { default as ${typename} } from './${typename}';\n`;
-  })
-  .join('');
+    .map(file => {
+      const typename = path.basename(file).replace('.js', '');
+      return `export { default as ${typename} } from './${typename}';\n`;
+    })
+    .join('');
 
   await fse.writeFile(path.join(options.outputDir, 'index.js'), index);
 }
@@ -97,9 +98,9 @@ async function worker({ svgPath, options, renameFilter, template }) {
 
   const svgPathObj = path.parse(svgPath);
   const innerPath = path
-  .dirname(svgPath)
-  .replace(options.svgDir, '')
-  .replace(path.relative(process.cwd(), options.svgDir), ''); // for relative dirs
+    .dirname(svgPath)
+    .replace(options.svgDir, '')
+    .replace(path.relative(process.cwd(), options.svgDir), ''); // for relative dirs
   const destPath = renameFilter(svgPathObj, innerPath, options);
 
   const outputFileDir = path.dirname(path.join(options.outputDir, destPath));
@@ -114,24 +115,24 @@ async function worker({ svgPath, options, renameFilter, template }) {
 
   // Remove hardcoded color fill before optimizing so that empty groups are removed
   const input = data
-  .replace(/#1D1D1D/g, 'currentColor')
-  .replace(/<rect fill="none" width="24" height="24"\/>/g, '')
-  .replace(/<rect id="SVGID_1_" width="24" height="24"\/>/g, '');
+    .replace(/#1D1D1D/g, 'currentColor')
+    .replace(/<rect fill="none" width="24" height="24"\/>/g, '')
+    .replace(/<rect id="SVGID_1_" width="24" height="24"\/>/g, '');
 
   const result = await svgo.optimize(input);
 
   // Extract the paths from the svg string
   // Clean xml paths
   let paths = result.data
-  .replace(/<svg[^>]*>/g, '')
-  .replace(/<\/svg>/g, '')
-  .replace(/"\/>/g, '" />')
-  .replace(/fill-opacity=/g, 'fillOpacity=')
-  .replace(/xlink:href=/g, 'xlinkHref=')
-  .replace(/clip-rule=/g, 'clipRule=')
-  .replace(/fill-rule=/g, 'fillRule=')
-  .replace(/ clip-path=".+?"/g, '') // Fix visibility issue and save some bytes.
-  .replace(/<clipPath.+?<\/clipPath>/g, ''); // Remove unused definitions
+    .replace(/<svg[^>]*>/g, '')
+    .replace(/<\/svg>/g, '')
+    .replace(/"\/>/g, '" />')
+    .replace(/fill-opacity=/g, 'fillOpacity=')
+    .replace(/xlink:href=/g, 'xlinkHref=')
+    .replace(/clip-rule=/g, 'clipRule=')
+    .replace(/fill-rule=/g, 'fillRule=')
+    .replace(/ clip-path=".+?"/g, '') // Fix visibility issue and save some bytes.
+    .replace(/<clipPath.+?<\/clipPath>/g, ''); // Remove unused definitions
 
   const sizeMatch = svgPath.match(/^.*_([0-9]+)px.svg$/);
   const size = sizeMatch ? Number(sizeMatch[1]) : 24;
@@ -140,8 +141,8 @@ async function worker({ svgPath, options, renameFilter, template }) {
     const scale = Math.round((24 / size) * 100) / 100; // Keep a maximum of 2 decimals
     paths = paths.replace('clipPath="url(#b)" ', '');
     paths = paths.replace(
-    /<path /g,
-    `<path transform="scale(${scale}, ${scale})" `
+      /<path /g,
+      `<path transform="scale(${scale}, ${scale})" `
     );
   }
 
@@ -159,25 +160,12 @@ async function worker({ svgPath, options, renameFilter, template }) {
 
 async function main(options) {
   try {
-    let originalWrite;
-
-    options.glob = options.glob || '/**/*.svg';
-    options.innerPath = options.innerPath || '';
-    options.renameFilter = options.renameFilter || RENAME_FILTER_DEFAULT;
-    options.disableLog = options.disableLog || false;
-
-    // Disable console.log opt, used for tests
-    if (options.disableLog) {
-      originalWrite = process.stdout.write;
-      process.stdout.write = () => {};
-    }
-
+    let renameFilter = options.renameFilter || defaultFilter;
     rimraf.sync(`${options.outputDir}/*.js`); // Clean old files
 
-    let { renameFilter } = options;
     if (typeof renameFilter === 'string') {
       /* eslint-disable-next-line global-require, import/no-dynamic-require */
-      renameFilter = require(renameFilter).default;
+      renameFilter = require(path.join(process.cwd(), renameFilter)).default;
     }
     if (typeof renameFilter !== 'function') {
       throw Error('renameFilter must be a function');
@@ -198,21 +186,16 @@ async function main(options) {
     }
 
     const mapper = svgPath =>
-    worker({
-      svgPath,
-      options,
-      renameFilter,
-      template
-    });
+      worker({
+        svgPath,
+        options,
+        renameFilter,
+        template
+      });
 
     await pMap(svgPaths, mapper, { concurrency: 1 });
 
     await generateIndex(options);
-
-    if (options.disableLog) {
-      // bring back stdout
-      process.stdout.write = originalWrite;
-    }
   } catch (err) {
     console.log(err);
   }
@@ -220,24 +203,34 @@ async function main(options) {
 
 const { argv } = yargs
   .usage("Build JSX components from SVG's.\nUsage: $0")
-  .demand('output-dir')
-  .describe('output-dir', 'Directory to output jsx components')
-  .demand('svg-dir')
-  .describe('svg-dir', 'SVG directory')
-  .describe('glob', 'Glob to match inside of --svg-dir. Default **/*.svg')
+  .option('svg-dir', {
+    alias: 's',
+    describe: 'SVG directory',
+    demandOption: true
+  })
+  .option('output-dir', {
+    alias: 'o',
+    output: 'Directory to output jsx components',
+    default: 'src'
+  })
+  .option('glob', {
+    describe: 'Glob to match inside of --svg-dir',
+    default: '/**/*.svg'
+  })
+  .option('inner-path', {
+    describe:
+      '"Reach into" subdirs, since libraries like material-design-icons' +
+      ' use arbitrary build directories to organize icons' +
+      ' e.g. "action/svg/production/icon_3d_rotation_24px.svg"',
+    default: ''
+  })
   .describe(
-  'inner-path',
-  '"Reach into" subdirs, since libraries like material-design-icons' +
-  ' use arbitrary build directories to organize icons' +
-  ' e.g. "action/svg/production/icon_3d_rotation_24px.svg"'
+    'file-suffix',
+    'Filter only files ending with a suffix (pretty much only for @material-ui/icons)'
   )
   .describe(
-  'file-suffix',
-  'Filter only files ending with a suffix (pretty much only for @material-ui/icons)'
-  )
-  .describe(
-  'rename-filter',
-  `Path to JS module used to rename destination filename and path.
+    'rename-filter',
+    `Path to JS module used to rename destination filename and path.
         Default: ${RENAME_FILTER_DEFAULT}`
   );
-  main(argv);
+main(argv);
