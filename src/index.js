@@ -96,6 +96,7 @@ async function generateIndex(options) {
 async function worker({ svgPath, options, renameFilter, template }) {
   // process.stdout.write('.');
 
+  const { iconWorker } = options;
   const svgPathObj = path.parse(svgPath);
   const innerPath = path
     .dirname(svgPath)
@@ -114,10 +115,18 @@ async function worker({ svgPath, options, renameFilter, template }) {
   const data = await fse.readFile(svgPath, { encoding: 'utf8' });
 
   // Remove hardcoded color fill before optimizing so that empty groups are removed
-  const input = data
-    .replace(/#1D1D1D/g, 'currentColor')
+  let input = data
     .replace(/<rect fill="none" width="24" height="24"\/>/g, '')
     .replace(/<rect id="SVGID_1_" width="24" height="24"\/>/g, '');
+
+  if (iconWorker) {
+    /* eslint-disable-next-line global-require, import/no-dynamic-require */
+    const iconWorkerFn = require(path.join(process.cwd(), iconWorker)).default;
+    if (typeof iconWorker !== 'function') {
+      throw Error('renameFilter must be a function');
+    }
+    input = iconWorkerFn(input);
+  }
 
   const result = await svgo.optimize(input);
 
@@ -232,5 +241,9 @@ const { argv } = yargs
     'rename-filter',
     `Path to JS module used to rename destination filename and path.
         Default: ${RENAME_FILTER_DEFAULT}`
-  );
+  )
+  .option('icon-worker', {
+    describe: 'File that accept each icon and should return it back.'
+  });
+
 main(argv);
