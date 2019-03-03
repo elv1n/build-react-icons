@@ -122,8 +122,8 @@ async function worker({ svgPath, options, renameFilter, template }) {
   if (iconWorker) {
     /* eslint-disable-next-line global-require, import/no-dynamic-require */
     const iconWorkerFn = require(path.join(process.cwd(), iconWorker)).default;
-    if (typeof iconWorker !== 'function') {
-      throw Error('renameFilter must be a function');
+    if (typeof iconWorkerFn !== 'function') {
+      throw Error('iconWorker must be a function');
     }
     input = iconWorkerFn(input);
   }
