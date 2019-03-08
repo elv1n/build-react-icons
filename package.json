@@ -8,8 +8,8 @@
     "build-react-icons": "./bin/build-react-icons.js"
   },
   "scripts": {
-    "start": "babel ./src --out-dir dist --copy-files -w",
-    "build": "babel ./src --out-dir dist --copy-files"
+    "start": "babel ./src --out-dir dist --copy-files -w --ignore ./src/reactIconsUtils",
+    "build": "babel ./src --out-dir dist --copy-files --ignore ./src/reactIconsUtils"
   },
   "files": [
     "bin",

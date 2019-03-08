@@ -11,6 +11,7 @@ import mkdirp from 'mkdirp';
 import SVGO from 'svgo';
 import pMap from 'p-map';
 
+import helpers from './helpers';
 import uniqNames from './utils/uniqNames';
 import defaultFilter from './utils/renameFilters/default';
 
@@ -93,6 +94,12 @@ async function generateIndex(options) {
   await fse.writeFile(path.join(options.outputDir, 'index.js'), index);
 }
 
+async function copyUtils(options) {
+  const utilsDir = path.join(options.outputDir, 'utils');
+  await fse.ensureDir(utilsDir);
+  await fse.copy(path.join(__dirname, 'reactIconsUtils'), utilsDir);
+}
+
 async function worker({ svgPath, options, renameFilter, template }) {
   // process.stdout.write('.');
 
@@ -144,10 +151,18 @@ async function worker({ svgPath, options, renameFilter, template }) {
     .replace(/<clipPath.+?<\/clipPath>/g, ''); // Remove unused definitions
 
   const sizeMatch = svgPath.match(/^.*_([0-9]+)px.svg$/);
-  const size = sizeMatch ? Number(sizeMatch[1]) : 24;
+  const size = sizeMatch ? Number(sizeMatch[1]) : null;
 
-  if (size !== 24) {
-    const scale = Math.round((24 / size) * 100) / 100; // Keep a maximum of 2 decimals
+  if (!size) {
+    const width = helpers.round((/width="([^"]+)"/.exec(result.data) || '')[1]);
+    // if (height === width) {
+    paths = paths.replace(
+      /<path /g,
+      `<path transform="scale(${width}, ${width})" `
+    );
+    // }
+  } else if (size !== 24) {
+    const scale = helpers.round(size);
     paths = paths.replace('clipPath="url(#b)" ', '');
     paths = paths.replace(
       /<path /g,
@@ -205,6 +220,7 @@ async function main(options) {
     await pMap(svgPaths, mapper, { concurrency: 1 });
 
     await generateIndex(options);
+    await copyUtils(options);
   } catch (err) {
     console.log(err);
   }
