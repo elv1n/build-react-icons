@@ -30,6 +30,7 @@ build-react-icons --svg-dir icons --output-dir src
 * `--glob` - Glob to match inside of --svg-dir     [default: "/**/*.svg"]
 * `--rename-filter`  - Apply a custom filter to rename the generated icons.
 * `--icon-worker` - File that accept each icon and should return it back.
+* `--new` - Create files only for new icons.
 
 If you experience any issues building icons or would like a feature added,
 [file an issue](https://github.com/mui-org/material-ui/issues) and let us

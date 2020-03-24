@@ -160,7 +160,7 @@ async function worker({ svgPath, options, renameFilter, template }) {
   if (!size) {
     const width = helpers.round((/width="([^"]+)"/.exec(result.data) || '')[1]);
     const height = helpers.round((/height="([^"]+)"/.exec(result.data) || '')[1]);
-    if (!Number.isNaN(height) && !Number.isNaN(width)) {
+    if (!Number.isNaN(height) && !Number.isNaN(width) && width) {
       paths = paths.replace(/<path /g, `<path transform="scale(${width}, ${height})" `);
     }
   } else if (size !== 24) {
@@ -177,17 +177,19 @@ async function worker({ svgPath, options, renameFilter, template }) {
     componentName: getComponentName(destPath)
   });
 
-  const absDestPath = path.join(options.outputDir, destPath);
-  if (await fse.pathExists(absDestPath)) {
-    process.exit(1);
+  const absDestPath = path.join(path.resolve(options.outputDir), destPath);
+
+  if (!(await fse.pathExists(absDestPath))) {
+    await fse.writeFile(absDestPath, fileString);
   }
-  await fse.writeFile(absDestPath, fileString);
 }
 
 async function main(options) {
   try {
     let renameFilter = options.renameFilter || defaultFilter;
-    rimraf.sync(`${options.outputDir}/*.js`); // Clean old files
+    if (!options.onlyNew) {
+      rimraf.sync(`${options.outputDir}/*.js`); // Clean old files
+    }
 
     if (typeof renameFilter === 'string') {
       /* eslint-disable-next-line global-require, import/no-dynamic-require */
@@ -211,13 +213,14 @@ async function main(options) {
       process.exit(1);
     }
 
-    const mapper = svgPath =>
-      worker({
+    const mapper = svgPath => {
+      return worker({
         svgPath,
         options,
         renameFilter,
         template
       });
+    }
 
     await pMap(svgPaths, mapper, { concurrency: 1 });
 
@@ -234,6 +237,12 @@ const { argv } = yargs
     alias: 's',
     describe: 'SVG directory',
     demandOption: true
+  })
+  .option('only-new', {
+    alias: 'new',
+    describe: 'Generate only new icon',
+    type: 'boolean',
+    default: false
   })
   .option('output-dir', {
     alias: 'o',
