@@ -45,7 +45,12 @@ const svgo = new SVGO({
     { convertTransform: true },
     { removeUnknownsAndDefaults: true },
     { removeNonInheritableGroupAttrs: true },
-    { removeUselessStrokeAndFill: true },
+    {
+      removeUselessStrokeAndFill: {
+        // https://github.com/svg/svgo/issues/727#issuecomment-303115276
+        removeNone: true,
+      },
+    },
     { removeUnusedNS: true },
     { cleanupIDs: true },
     { cleanupNumericValues: true },
@@ -57,7 +62,6 @@ const svgo = new SVGO({
     { mergePaths: true },
     { convertShapeToPath: true },
     { sortAttrs: true },
-    { removeDimensions: true },
     { removeAttrs: true },
     { removeElementsByAttr: true },
     { removeStyleElement: true },
@@ -155,12 +159,10 @@ async function worker({ svgPath, options, renameFilter, template }) {
 
   if (!size) {
     const width = helpers.round((/width="([^"]+)"/.exec(result.data) || '')[1]);
-    // if (height === width) {
-    paths = paths.replace(
-      /<path /g,
-      `<path transform="scale(${width}, ${width})" `
-    );
-    // }
+    const height = helpers.round((/height="([^"]+)"/.exec(result.data) || '')[1]);
+    if (!Number.isNaN(height) && !Number.isNaN(width)) {
+      paths = paths.replace(/<path /g, `<path transform="scale(${width}, ${height})" `);
+    }
   } else if (size !== 24) {
     const scale = helpers.round(size);
     paths = paths.replace('clipPath="url(#b)" ', '');
